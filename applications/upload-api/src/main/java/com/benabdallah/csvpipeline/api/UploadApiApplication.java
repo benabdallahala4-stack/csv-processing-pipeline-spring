@@ -1,0 +1,2 @@
+package com.benabdallah.csvpipeline.api; import org.springframework.boot.SpringApplication; import org.springframework.boot.autoconfigure.SpringBootApplication; import org.springframework.scheduling.annotation.EnableScheduling;
+@SpringBootApplication(scanBasePackages="com.benabdallah.csvpipeline") @EnableScheduling public class UploadApiApplication { public static void main(String[] args){SpringApplication.run(UploadApiApplication.class,args);} }

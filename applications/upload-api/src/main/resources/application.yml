@@ -1,0 +1,13 @@
+spring:
+  application.name: csv-upload-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/csv_pipeline}
+    username: ${DB_USER:csv_pipeline}
+    password: ${DB_PASSWORD:csv_pipeline}
+  kafka.bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  flyway.enabled: true
+pipeline.s3:
+  bucket: ${S3_BUCKET:csv-processing-pipeline}
+  region: ${AWS_REGION:eu-central-1}
+management.endpoints.web.exposure.include: health,info,prometheus
+management.endpoint.health.probes.enabled: true

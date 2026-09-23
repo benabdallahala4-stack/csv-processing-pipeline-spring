@@ -1,0 +1,16 @@
+package com.benabdallah.csvpipeline.upload;
+import java.time.Instant; import java.util.Objects;
+public final class Upload {
+  private final UploadId id; private final String fileName, contentType, sha256, objectKey; private final long sizeBytes;
+  private UploadStatus status; private int attemptCount; private String thirdPartyReference, failureCode; private Instant updatedAt;
+  private Upload(UploadId id,String fileName,String contentType,long sizeBytes,String sha256,String objectKey,UploadStatus status,int attempts,String reference,String failure,Instant updatedAt){this.id=id;this.fileName=fileName;this.contentType=contentType;this.sizeBytes=sizeBytes;this.sha256=sha256;this.objectKey=objectKey;this.status=status;this.attemptCount=attempts;this.thirdPartyReference=reference;this.failureCode=failure;this.updatedAt=updatedAt;}
+  public static Upload initiate(UploadId id,String fileName,String contentType,long sizeBytes,String sha256,String objectKey){ if(sizeBytes<=0) throw new IllegalArgumentException("sizeBytes must be positive"); return new Upload(Objects.requireNonNull(id),require(fileName),require(contentType),sizeBytes,require(sha256),require(objectKey),UploadStatus.INITIATED,0,null,null,Instant.now()); }
+  public static Upload restore(UploadId id,String fileName,String contentType,long sizeBytes,String sha256,String objectKey,UploadStatus status,int attempts,String reference,String failure,Instant updatedAt){return new Upload(id,fileName,contentType,sizeBytes,sha256,objectKey,status,attempts,reference,failure,updatedAt);}
+  public void markReady(Instant now){ if(status==UploadStatus.READY)return; requireState(UploadStatus.INITIATED); status=UploadStatus.READY;updatedAt=now; }
+  public void claimProcessing(Instant now){ if(status!=UploadStatus.READY&&status!=UploadStatus.RETRY_PENDING) throw new IllegalStateException("Cannot process from "+status); status=UploadStatus.PROCESSING;attemptCount++;updatedAt=now; }
+  public void scheduleRetry(String code,Instant now){requireState(UploadStatus.PROCESSING);status=UploadStatus.RETRY_PENDING;failureCode=require(code);updatedAt=now;}
+  public void succeed(String reference,Instant now){requireState(UploadStatus.PROCESSING);status=UploadStatus.SUCCEEDED;thirdPartyReference=require(reference);failureCode=null;updatedAt=now;}
+  public void fail(String code,Instant now){requireState(UploadStatus.PROCESSING);status=UploadStatus.FAILED;failureCode=require(code);updatedAt=now;}
+  private void requireState(UploadStatus expected){if(status!=expected)throw new IllegalStateException("Expected "+expected+" but was "+status);} private static String require(String s){if(s==null||s.isBlank())throw new IllegalArgumentException("value is required");return s;}
+  public UploadId id(){return id;} public String fileName(){return fileName;} public String contentType(){return contentType;} public long sizeBytes(){return sizeBytes;} public String sha256(){return sha256;} public String objectKey(){return objectKey;} public UploadStatus status(){return status;} public int attemptCount(){return attemptCount;} public String thirdPartyReference(){return thirdPartyReference;} public String failureCode(){return failureCode;} public Instant updatedAt(){return updatedAt;}
+}

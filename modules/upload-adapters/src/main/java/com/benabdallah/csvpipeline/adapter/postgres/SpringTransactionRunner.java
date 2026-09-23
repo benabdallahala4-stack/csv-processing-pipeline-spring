@@ -1,0 +1,2 @@
+package com.benabdallah.csvpipeline.adapter.postgres; import com.benabdallah.csvpipeline.application.port.out.TransactionRunner; import java.util.function.Supplier; import org.springframework.transaction.support.TransactionTemplate;
+public final class SpringTransactionRunner implements TransactionRunner { private final TransactionTemplate template; public SpringTransactionRunner(TransactionTemplate template){this.template=template;} public <T>T required(Supplier<T> work){return template.execute(status->work.get());} }

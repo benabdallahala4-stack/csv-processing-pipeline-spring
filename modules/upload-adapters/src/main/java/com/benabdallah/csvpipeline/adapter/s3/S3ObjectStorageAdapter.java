@@ -1,0 +1,8 @@
+package com.benabdallah.csvpipeline.adapter.s3;
+import com.benabdallah.csvpipeline.application.port.out.*; import com.benabdallah.csvpipeline.upload.Upload; import java.io.InputStream; import java.net.URI; import java.time.Instant; import java.util.Map; import software.amazon.awssdk.services.s3.S3Client; import software.amazon.awssdk.services.s3.model.*; import software.amazon.awssdk.services.s3.presigner.S3Presigner; import software.amazon.awssdk.services.s3.presigner.model.*;
+public final class S3ObjectStorageAdapter implements ObjectStoragePort {
+ private final S3Client client;private final S3Presigner presigner;private final S3Properties properties; public S3ObjectStorageAdapter(S3Client c,S3Presigner p,S3Properties props){client=c;presigner=p;properties=props;}
+ public PresignedUpload presignPut(Upload u){var put=PutObjectRequest.builder().bucket(properties.bucket()).key(u.objectKey()).contentType(u.contentType()).contentLength(u.sizeBytes()).metadata(Map.of("sha256",u.sha256())).build();var request=PutObjectPresignRequest.builder().signatureDuration(properties.presignTtl()).putObjectRequest(put).build();var signed=presigner.presignPutObject(request);return new PresignedUpload(URI.create(signed.url().toString()),Instant.now().plus(properties.presignTtl()),Map.of("Content-Type",u.contentType(),"x-amz-meta-sha256",u.sha256()));}
+ public ObjectMetadata head(Upload u){var h=client.headObject(b->b.bucket(properties.bucket()).key(u.objectKey()));return new ObjectMetadata(h.contentLength(),h.contentType(),h.metadata().getOrDefault("sha256",""));}
+ public InputStream openStream(Upload u){return client.getObject(GetObjectRequest.builder().bucket(properties.bucket()).key(u.objectKey()).build());}
+}

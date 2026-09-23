@@ -1,0 +1,16 @@
+spring:
+  application.name: csv-processing-worker
+  main.web-application-type: none
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/csv_pipeline}
+    username: ${DB_USER:csv_pipeline}
+    password: ${DB_PASSWORD:csv_pipeline}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    listener.ack-mode: manual_immediate
+    consumer.enable-auto-commit: false
+pipeline:
+  s3:
+    bucket: ${S3_BUCKET:csv-processing-pipeline}
+    region: ${AWS_REGION:eu-central-1}
+  third-party.url: ${THIRD_PARTY_URL:http://localhost:8082}

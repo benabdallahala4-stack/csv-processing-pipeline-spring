@@ -1,0 +1,13 @@
+package com.benabdallah.csvpipeline.adapter.postgres;
+import static org.assertj.core.api.Assertions.assertThat;
+import com.benabdallah.csvpipeline.application.port.out.*; import com.benabdallah.csvpipeline.application.service.CompleteUploadService; import com.benabdallah.csvpipeline.upload.*; import java.io.InputStream; import java.time.*; import java.util.*; import java.util.concurrent.*; import org.flywaydb.core.Flyway; import org.junit.jupiter.api.*; import org.postgresql.ds.PGSimpleDataSource; import org.springframework.jdbc.core.simple.JdbcClient; import org.springframework.jdbc.datasource.DataSourceTransactionManager; import org.springframework.transaction.support.TransactionTemplate; import org.testcontainers.junit.jupiter.*; import org.testcontainers.postgresql.PostgreSQLContainer;
+@Testcontainers(disabledWithoutDocker=true) class PostgresConcurrencyTest {
+ @Container static final PostgreSQLContainer postgres=new PostgreSQLContainer("postgres:17-alpine");
+ @Test void concurrentCompletionCreatesOneLogicalEvent()throws Exception {
+  var ds=new PGSimpleDataSource();ds.setURL(postgres.getJdbcUrl());ds.setUser(postgres.getUsername());ds.setPassword(postgres.getPassword());Flyway.configure().dataSource(ds).load().migrate();
+  var jdbc=JdbcClient.create(ds);var repo=new JdbcUploadAdapter(jdbc);var tx=new SpringTransactionRunner(new TransactionTemplate(new DataSourceTransactionManager(ds)));var id=UploadId.newId();var upload=Upload.initiate(id,"people.csv","text/csv",12,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","uploads/"+id+"/source.csv");tx.required(()->{repo.save(upload);return null;});
+  ObjectStoragePort storage=new ObjectStoragePort(){public PresignedUpload presignPut(Upload u){throw new UnsupportedOperationException();}public ObjectMetadata head(Upload u){return new ObjectMetadata(u.sizeBytes(),u.contentType(),u.sha256());}public InputStream openStream(Upload u){throw new UnsupportedOperationException();}};
+  var service=new CompleteUploadService(repo,storage,repo,tx,Clock.systemUTC());var start=new CountDownLatch(1);try(var executor=Executors.newFixedThreadPool(2)){var a=executor.submit(()->{start.await();return service.complete(id);});var b=executor.submit(()->{start.await();return service.complete(id);});start.countDown();assertThat(a.get(10,TimeUnit.SECONDS).status()).isEqualTo(UploadStatus.READY);assertThat(b.get(10,TimeUnit.SECONDS).status()).isEqualTo(UploadStatus.READY);}
+  assertThat(jdbc.sql("SELECT count(*) FROM outbox_event WHERE aggregate_id=:id").param("id",id.value()).query(Long.class).single()).isEqualTo(1L);
+ }
+}

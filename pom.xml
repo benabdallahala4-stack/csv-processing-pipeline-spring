@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version><relativePath/></parent>
+  <groupId>com.benabdallah.csvpipeline</groupId><artifactId>csv-processing-pipeline-spring</artifactId><version>1.0.0-SNAPSHOT</version><packaging>pom</packaging>
+  <name>CSV Processing Pipeline</name>
+  <properties><java.version>21</java.version><testcontainers.version>2.0.5</testcontainers.version><aws.sdk.version>2.42.11</aws.sdk.version><archunit.version>1.4.1</archunit.version></properties>
+  <modules>
+    <module>modules/upload-domain</module><module>modules/upload-application</module><module>modules/upload-adapters</module>
+    <module>applications/upload-api</module><module>applications/processing-worker</module><module>applications/third-party-stub</module>
+  </modules>
+  <dependencyManagement><dependencies>
+    <dependency><groupId>software.amazon.awssdk</groupId><artifactId>bom</artifactId><version>${aws.sdk.version}</version><type>pom</type><scope>import</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-bom</artifactId><version>${testcontainers.version}</version><type>pom</type><scope>import</scope></dependency>
+  </dependencies></dependencyManagement>
+</project>

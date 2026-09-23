@@ -1,0 +1,7 @@
+package com.benabdallah.csvpipeline.application.service;
+import com.benabdallah.csvpipeline.application.*; import com.benabdallah.csvpipeline.application.port.out.*; import com.benabdallah.csvpipeline.upload.*; import java.time.Clock;
+public final class CompleteUploadService { private final UploadRepository uploads;private final ObjectStoragePort storage;private final OutboxRepository outbox;private final TransactionRunner tx;private final Clock clock;
+ public CompleteUploadService(UploadRepository uploads,ObjectStoragePort storage,OutboxRepository outbox,TransactionRunner tx,Clock clock){this.uploads=uploads;this.storage=storage;this.outbox=outbox;this.tx=tx;this.clock=clock;}
+ public UploadView complete(UploadId id){var snapshot=uploads.find(id).orElseThrow(()->new NotFoundException("Upload not found"));var metadata=storage.head(snapshot);if(metadata.sizeBytes()!=snapshot.sizeBytes()||!metadata.contentType().equals(snapshot.contentType())||!metadata.sha256().equalsIgnoreCase(snapshot.sha256()))throw new ConflictException("S3 object metadata does not match upload");return tx.required(()->{var locked=uploads.findForUpdate(id).orElseThrow();if(locked.status()==UploadStatus.INITIATED){locked.markReady(clock.instant());uploads.update(locked);outbox.appendUploadReady(id);}return UploadView.from(locked);});}
+ public UploadView get(UploadId id){return UploadView.from(uploads.find(id).orElseThrow(()->new NotFoundException("Upload not found")));}
+}
